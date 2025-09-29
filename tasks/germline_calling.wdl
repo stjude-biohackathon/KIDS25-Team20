@@ -41,8 +41,8 @@ task haplotypecaller {
 
     command <<<
         mv ~{input_ref_tarball} ~{local_tarball} && \
-        time tar xvf ~{local_tarball} && \
-        time ~{pb_path} haplotypecaller \
+        tar xvf ~{local_tarball} && \
+        ~{pb_path} haplotypecaller \
         --in-bam ~{input_bam} \
         --ref ~{ref} \
         --out-variants ~{out_vcf} \
@@ -111,8 +111,8 @@ task deepvariant {
 
     command <<<
         mv ~{input_ref_tarball} ~{local_tarball} && \
-        time tar xvf ~{local_tarball} && \
-        time ~{pb_path} deepvariant \
+        tar xvf ~{local_tarball} && \
+        ~{pb_path} deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
         --ref ~{ref} \
         --in-bam ~{input_bam} \
