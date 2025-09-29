@@ -124,11 +124,14 @@ task deepvariant {
         File deepvariant_vcf = "~{out_vcf}"
     }
 
-    runtime {
-        docker : "~{pb_docker}"
-        disks : "local-disk ~{auto_disk_gb} SSD"
+    requirements {
+        container : "~{pb_docker}"
         cpu : n_threads
         memory : "~{gb_ram} GB"
+        gpu: true
+    }
+    hints {
+        disks : "local-disk ~{auto_disk_gb} SSD"
         hpcMemory : gb_ram
         hpc_queue : "~{hpc_queue}"
         hpcruntime_minutes : runtime_minutes
@@ -139,6 +142,7 @@ task deepvariant {
         preemptible : max_preempt_attempts
     }
 }
+
 
 workflow clara_parabricks_germline {
     input {
