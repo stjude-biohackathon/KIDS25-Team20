@@ -9,8 +9,8 @@ task bam2fq {
         Author: "Nvidia Clara Parabricks"
         description: "Convert a BAM file into a pair of FASTQ files"
         outputs: {
-            fastq_1: "some description",
-            fastq_2: "some description",
+            fastq_1: "Output FASTQ file, 1st read",
+            fastq_2: "Output FASTQ file, 2nd read",
         }
     }
 
@@ -86,46 +86,41 @@ task bam2fq {
 workflow clara_parabricks_bam2fq2bam {
     meta {
         Author: "Nvidia Clara Parabricks"
-        description: "Extract FASTQ files from a BAM file and realign them to produce a new BAM file on a different reference"
+        description: "Extract FASTQ files from a BAM file and realign them to produce a new BAM file on a different reference. Given a BAM file, extract the reads from it and realign them to a new reference genome. Expected runtime for a 30X BAM is less than 3 hours on a 4x V100 system. We recommend running with at least 32 threads and 4x V100 GPUs on Baremetal and utilizing 4x T4s on the cloud."
         outputs: {
-            fastq_1: "some description",
-            fastq_2: "some description",
-            file_bam: "some description",
-            file_bai: "some description",
-            file_bqsr: "some description",
+            fastq_1: "Output FASTQ file, 1st read",
+            fastq_2: "Output FASTQ file, 2nd read",
+            file_bam: "Output BAM file",
+            file_bai: "Output BAM index file",
+            file_bqsr: "Output BQSR file",
         }
     }
 
     parameter_meta {
-        file_bam: ""
-        file_bai: ""
+        file_bam: "Path to the BAM file"
+        file_bai: "Path to the BAM index file"
         ref_tarball: ""
         known_sites_vcf: ""
         known_sites_tbi: ""
-        original_ref_tarball: ""
-        pb_license_bin: ""
-        pb_path: ""
-        pb_docker: ""
+        original_ref_tarball: "Original reference tarball. Required for CRAM input."
+        pb_license_bin: "Path to the Parabricks license binary"
+        pb_path: "Parabricks command pbrun"
+        pb_docker: "The docker image to use for the task"
         tmp_dir: ""
         gpu_model_fq_2_bam: ""
         gpu_driver_version_fq_2_bam: ""
         hpc_queue_bam_2_fq: ""
         hpc_queue_fq_2_bam: ""
         n_gpu_fq_2_bam: ""
-        n_threads_bam_2_fq: ""
-        n_threads_fq_2_bam: ""
-        gb_ram_bam_2_fq: ""
-        gb_ram_fq_2_bam: ""
-        disk_gb: ""
-        runtime_minutes_bam_2_fq: ""
-        runtime_minutes_fq_2_bam: ""
+        n_threads_bam_2_fq: "Number of threads to use; ..."
+        n_threads_fq_2_bam: "Number of threads to use; ..."
+        gb_ram_bam_2_fq: "GB of RAM to use; ..."
+        gb_ram_fq_2_bam: "GB of RAM to use; ..."
+        disk_gb: "GB of disk space to use; default 0"
+        runtime_minutes_bam_2_fq: "Runtime minutes, ..."
+        runtime_minutes_fq_2_bam: "Runtime minutes, ..."
     }
 
-    # Given a BAM file,
-    # extract the reads from it and realign them to a new reference genome.
-    # Expected runtime for a 30X BAM is less than 3 hours on a 4x V100 system.
-    # We recommend running with at least 32 threads and 4x V100 GPUs on Baremetal and
-    # utilizing 4x T4s on the cloud.
     input {
         File file_bam
         File file_bai
