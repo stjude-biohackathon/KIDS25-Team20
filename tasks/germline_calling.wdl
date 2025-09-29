@@ -1,234 +1,243 @@
-version 1.0
+version 1.2
 
 task haplotypecaller {
     input {
-        File inputBAM
-        File inputBAI
-        File? inputRecal
-        File inputRefTarball
-        String pbPATH = "pbrun"
-        File? intervalFile
-        Boolean gvcfMode = false
-        Boolean useBestPractices = false
-        String? haplotypecallerPassthroughOptions = ""
-        String annotationArgs = ""
+        File input_bam
+        File input_bai
+        File? input_recal
+        File input_ref_tarball
+        String pb_path = "pbrun"
+        File? interval_file
+        Boolean gvcf_mode = false
+        Boolean use_best_practices = false
+        String? haplotypecaller_passthrough_options = ""
+        String annotation_args = ""
 
-        File? pbLicenseBin
-        String? pbDocker
-        Int nGPU = 2
-        String gpuModel = "nvidia-tesla-t4"
-        String gpuDriverVersion = "525.60.13"
-        Int nThreads = 24
-        Int gbRAM = 120
-        Int diskGB = 0
-        Int runtimeMinutes = 600
-        String hpcQueue = "gpu"
-        Int maxPreemptAttempts = 3
+        File? pb_license_bin
+        String? pb_docker
+        Int n_gpu = 2
+        String gpu_model = "nvidia-tesla-t4"
+        String gpu_driver_version = "525.60.13"
+        Int n_threads = 24
+        Int gb_ram = 120
+        Int disk_gb = 0
+        Int runtime_minutes = 600
+        String hpc_queue = "gpu"
+        Int max_preempt_attempts = 3
     }
 
-    String outbase = basename(inputBAM, ".bam")
-    String localTarball = basename(inputRefTarball)
-    String ref = basename(inputRefTarball, ".tar")
+    String outbase = basename(input_bam, ".bam")
+    String local_tarball = basename(input_ref_tarball)
+    String ref = basename(input_ref_tarball, ".tar")
 
-    Int auto_diskGB = if diskGB == 0 then ceil(2.0 * size(inputBAM, "GB")) + ceil(2.0 * size(inputRefTarball, "GB")) + ceil(size(inputBAI, "GB")) + 120 else diskGB
+    Int auto_disk_gb = if disk_gb == 0 then ceil(2.0 * size(input_bam, "GB")) + ceil(2.0 * size(input_ref_tarball, "GB")) + ceil(size(input_bai, "GB")) + 120 else disk_gb
 
-    String outVCF = outbase + ".haplotypecaller" + (if gvcfMode then '.g' else '') + ".vcf"
+    String out_vcf = outbase + ".haplotypecaller" + (if gvcf_mode then '.g' else '') + ".vcf"
 
-    String quantization_band_stub = if useBestPractices then " -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 -GQB 70 -GQB 80 -GQB 90 " else ""
-    String quantization_qual_stub = if useBestPractices then " --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30" else ""
-    String annotation_stub_base = if useBestPractices then "-G StandardAnnotation -G StandardHCAnnotation" else annotationArgs
-    String annotation_stub = if useBestPractices && gvcfMode then annotation_stub_base + " -G AS_StandardAnnotation " else annotation_stub_base
+    String quantization_band_stub = if use_best_practices then " -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 -GQB 70 -GQB 80 -GQB 90 " else ""
+    String quantization_qual_stub = if use_best_practices then " --static-quantized-quals 10 --static-quantized-quals 20 --static-quantized-quals 30" else ""
+    String annotation_stub_base = if use_best_practices then "-G StandardAnnotation -G StandardHCAnnotation" else annotation_args
+    String annotation_stub = if use_best_practices && gvcf_mode then annotation_stub_base + " -G AS_StandardAnnotation " else annotation_stub_base
 
     command <<<
-        mv ~{inputRefTarball} ~{localTarball} && \
-        time tar xvf ~{localTarball} && \
-        time ~{pbPATH} haplotypecaller \
-        --in-bam ~{inputBAM} \
+        mv ~{input_ref_tarball} ~{local_tarball} && \
+        time tar xvf ~{local_tarball} && \
+        time ~{pb_path} haplotypecaller \
+        --in-bam ~{input_bam} \
         --ref ~{ref} \
-        --out-variants ~{outVCF} \
-        ~{"--in-recal-file " + inputRecal} \
-        ~{if gvcfMode then "--gvcf " else ""} \
-        ~{"--haplotypecaller-options " + '"' + haplotypecallerPassthroughOptions + '"'} \
+        --out-variants ~{out_vcf} \
+        ~{"--in-recal-file " + input_recal} \
+        ~{if gvcf_mode then "--gvcf " else ""} \
+        ~{"--haplotypecaller-options " + '"' + haplotypecaller_passthrough_options + '"'} \
         ~{annotation_stub} \
         ~{quantization_band_stub} \
         ~{quantization_qual_stub} \
-        ~{"--license-file " + pbLicenseBin}
+        ~{"--license-file " + pb_license_bin}
     >>>
 
     output {
-        File haplotypecallerVCF = "~{outVCF}"
+        File haplotypecaller_vcf = "~{out_vcf}"
     }
 
-    runtime {
-        docker : "~{pbDocker}"
-        disks : "local-disk ~{auto_diskGB} SSD"
-        cpu : nThreads
-        memory : "~{gbRAM} GB"
-        hpcMemory : gbRAM
-        hpcQueue : "~{hpcQueue}"
-        hpcRuntimeMinutes : runtimeMinutes
-        gpuType : "~{gpuModel}"
-        gpuCount : nGPU
-        nvidiaDriverVersion : "~{gpuDriverVersion}"
+    requirements {
+        container : "~{pb_docker}"
+        cpu : n_threads
+        memory : "~{gb_ram} GB"
+        gpu : true
+    }
+
+    hints {
+        disks : "local-disk ~{auto_disk_gb} SSD"
+        gpuType : "~{gpu_model}"
+        gpuCount : n_gpu
+        nvidiaDriverVersion : "~{gpu_driver_version}"
+        hpcMemory : gb_ram
+        hpc_queue : "~{hpc_queue}"
+        hpcruntime_minutes : runtime_minutes
         zones : ["us-central1-a", "us-central1-b", "us-central1-c"]
-        preemptible : maxPreemptAttempts
+        preemptible : max_preempt_attempts
     }
 }
+
 
 task deepvariant {
     input {
-        File inputBAM
-        File inputBAI
-        File inputRefTarball
-        String pbPATH = "pbrun"
-        File? pbLicenseBin
-        String? pbDocker
-        Boolean gvcfMode = false
-        Int nGPU = 4
-        String gpuModel = "nvidia-tesla-t4"
-        String gpuDriverVersion = "525.60.13"
-        Int nThreads = 24
-        Int gbRAM = 120
-        Int diskGB = 0
-        Int runtimeMinutes = 600
-        String hpcQueue = "gpu"
-        Int maxPreemptAttempts = 3
+        File input_bam
+        File input_bai
+        File input_ref_tarball
+        String pb_path = "pbrun"
+        File? pb_license_bin
+        String? pb_docker
+        Boolean gvcf_mode = false
+        Int n_gpu = 4
+        String gpu_model = "nvidia-tesla-t4"
+        String gpu_driver_version = "525.60.13"
+        Int n_threads = 24
+        Int gb_ram = 120
+        Int disk_gb = 0
+        Int runtime_minutes = 600
+        String hpc_queue = "gpu"
+        Int max_preempt_attempts = 3
     }
 
-    String ref = basename(inputRefTarball, ".tar")
-    String localTarball = basename(inputRefTarball)
-    String outbase = basename(inputBAM, ".bam")
+    String ref = basename(input_ref_tarball, ".tar")
+    String local_tarball = basename(input_ref_tarball)
+    String outbase = basename(input_bam, ".bam")
 
-    Int auto_diskGB = if diskGB == 0 then ceil(size(inputBAM, "GB")) + ceil(size(inputRefTarball, "GB")) + ceil(size(inputBAI, "GB")) + 65 else diskGB
+    Int auto_disk_gb = if disk_gb == 0 then ceil(size(input_bam, "GB")) + ceil(size(input_ref_tarball, "GB")) + ceil(size(input_bai, "GB")) + 65 else disk_gb
 
-    String outVCF = outbase + ".deepvariant" + (if gvcfMode then '.g' else '') + ".vcf"
+    String out_vcf = outbase + ".deepvariant" + (if gvcf_mode then '.g' else '') + ".vcf"
 
 
     command <<<
-        mv ~{inputRefTarball} ~{localTarball} && \
-        time tar xvf ~{localTarball} && \
-        time ~{pbPATH} deepvariant \
-        ~{if gvcfMode then "--gvcf " else ""} \
+        mv ~{input_ref_tarball} ~{local_tarball} && \
+        time tar xvf ~{local_tarball} && \
+        time ~{pb_path} deepvariant \
+        ~{if gvcf_mode then "--gvcf " else ""} \
         --ref ~{ref} \
-        --in-bam ~{inputBAM} \
-        --out-variants ~{outVCF} \
-        ~{"--license-file " + pbLicenseBin}
+        --in-bam ~{input_bam} \
+        --out-variants ~{out_vcf} \
+        ~{"--license-file " + pb_license_bin}
     >>>
 
     output {
-        File deepvariantVCF = "~{outVCF}"
+        File deepvariant_vcf = "~{out_vcf}"
     }
 
     runtime {
-        docker : "~{pbDocker}"
-        disks : "local-disk ~{auto_diskGB} SSD"
-        cpu : nThreads
-        memory : "~{gbRAM} GB"
-        hpcMemory : gbRAM
-        hpcQueue : "~{hpcQueue}"
-        hpcRuntimeMinutes : runtimeMinutes
-        gpuType : "~{gpuModel}"
-        gpuCount : nGPU
-        nvidiaDriverVersion : "~{gpuDriverVersion}"
+        docker : "~{pb_docker}"
+        disks : "local-disk ~{auto_disk_gb} SSD"
+        cpu : n_threads
+        memory : "~{gb_ram} GB"
+        hpcMemory : gb_ram
+        hpc_queue : "~{hpc_queue}"
+        hpcruntime_minutes : runtime_minutes
+        gpuType : "~{gpu_model}"
+        gpuCount : n_gpu
+        nvidiaDriverVersion : "~{gpu_driver_version}"
         zones : ["us-central1-a", "us-central1-b", "us-central1-c"]
-        preemptible : maxPreemptAttempts
+        preemptible : max_preempt_attempts
     }
 }
 
-workflow ClaraParabricks_Germline {
+workflow clara_parabricks_germline {
     input {
-        File inputBAM
-        File inputBAI
-        File? inputRecal
-        File inputRefTarball
-        String pbPATH = "pbrun"
+        File input_bam
+        File input_bai
+        File? input_recal
+        File input_ref_tarball
+        String pb_path = "pbrun"
 
-        File? pbLicenseBin
-        String pbDocker = "nvcr.io/nvidia/clara/clara-parabricks:4.3.0-1"
+        File? pb_license_bin
+        String pb_docker = "nvcr.io/nvidia/clara/clara-parabricks:4.3.0-1"
 
-        Boolean runDeepVariant = true
-        Boolean runHaplotypeCaller = true
-        ## Run both DeepVariant and HaplotypeCaller in gVCF mode
-        Boolean gvcfMode = false
+        Boolean run_deep_variant = true
+        Boolean run_haplotype_caller = true
+        ## Run both DeepVariant and haplotype_caller in gVCF mode
+        Boolean gvcf_mode = false
 
         ## Universal preemptible limit
-        Int maxPreemptAttempts = 3
+        Int max_preempt_attempts = 3
 
         ## DeepVariant Runtime Args
-        Int nGPU_DeepVariant = 4
-        String gpuModel_DeepVariant = "nvidia-tesla-t4"
-        String gpuDriverVersion_DeepVariant = "525.60.13"
-        Int nThreads_DeepVariant = 24
-        Int gbRAM_DeepVariant = 120
-        Int diskGB_DeepVariant = 0
-        Int runtimeMinutes_DeepVariant = 600
-        String hpcQueue_DeepVariant = "gpu"
+        Int n_gpu_deep_variant = 4
+        String gpu_model_deep_variant = "nvidia-tesla-t4"
+        String gpu_driver_version_deep_variant = "525.60.13"
+        Int n_threads_deep_variant = 24
+        Int gb_ram_deep_variant = 120
+        Int disk_gb_deep_variant = 0
+        Int runtime_minutes_deep_variant = 600
+        String hpc_queue_deep_variant = "gpu"
 
         ## HaplotypeCaller Runtime Args
-        String? haplotypecallerPassthroughOptions
-        Int nGPU_HaplotypeCaller = 2
-        String gpuModel_HaplotypeCaller = "nvidia-tesla-t4"
-        String gpuDriverVersion_HaplotypeCaller = "525.60.13"
-        Int nThreads_HaplotypeCaller = 24
-        Int gbRAM_HaplotypeCaller = 120
-        Int diskGB_HaplotypeCaller = 0
-        Int runtimeMinutes_HaplotypeCaller = 600
-        String hpcQueue_HaplotypeCaller = "gpu"
+        String? haplotypecaller_passthrough_options
+        Int n_gpu_haplotype_caller = 2
+        String gpu_model_haplotype_caller = "nvidia-tesla-t4"
+        String gpu_driver_version_haplotype_caller = "525.60.13"
+        Int n_threads_haplotype_caller = 24
+        Int gb_ram_haplotype_caller = 120
+        Int disk_gb_haplotype_caller = 0
+        Int runtime_minutes_haplotype_caller = 600
+        String hpc_queue_haplotype_caller = "gpu"
     }
 
-    if (runHaplotypeCaller){
+    if (run_haplotype_caller){
         call haplotypecaller {
             input:
-                inputBAM=inputBAM,
-                inputBAI=inputBAI,
-                inputRecal=inputRecal,
-                inputRefTarball=inputRefTarball,
-                pbLicenseBin=pbLicenseBin,
-                pbPATH=pbPATH,
-                gvcfMode=gvcfMode,
-                haplotypecallerPassthroughOptions=haplotypecallerPassthroughOptions,
-                nThreads=nThreads_HaplotypeCaller,
-                nGPU=nGPU_HaplotypeCaller,
-                gpuModel=gpuModel_HaplotypeCaller,
-                gpuDriverVersion=gpuDriverVersion_HaplotypeCaller,
-                gbRAM=gbRAM_HaplotypeCaller,
-                diskGB=diskGB_HaplotypeCaller,
-                runtimeMinutes=runtimeMinutes_HaplotypeCaller,
-                hpcQueue=hpcQueue_HaplotypeCaller,
-                pbDocker=pbDocker,
-                maxPreemptAttempts=maxPreemptAttempts
+                input_bam = input_bam,
+                input_bai = input_bai,
+                input_recal = input_recal,
+                input_ref_tarball = input_ref_tarball,
+                pb_license_bin = pb_license_bin,
+                pb_path = pb_path,
+                gvcf_mode = gvcf_mode,
+                haplotypecaller_passthrough_options = haplotypecaller_passthrough_options,
+                n_threads = n_threads_haplotype_caller,
+                n_gpu = n_gpu_haplotype_caller,
+                gpu_model = gpu_model_haplotype_caller,
+                gpu_driver_version = gpu_driver_version_haplotype_caller,
+                gb_ram = gb_ram_haplotype_caller,
+                disk_gb = disk_gb_haplotype_caller,
+                runtime_minutes = runtime_minutes_haplotype_caller,
+                hpc_queue = hpc_queue_haplotype_caller,
+                pb_docker = pb_docker,
+                max_preempt_attempts = max_preempt_attempts
         }
 
     }
 
-    if (runDeepVariant){
+    if (run_deep_variant){
         call deepvariant {
             input:
-                inputBAM=inputBAM,
-                inputBAI=inputBAI,
-                inputRefTarball=inputRefTarball,
-                pbLicenseBin=pbLicenseBin,
-                pbPATH=pbPATH,
-                gvcfMode=gvcfMode,
-                nThreads=nThreads_DeepVariant,
-                nGPU=nGPU_DeepVariant,
-                gpuModel=gpuModel_DeepVariant,
-                gpuDriverVersion=gpuDriverVersion_DeepVariant,
-                gbRAM=gbRAM_DeepVariant,
-                diskGB=diskGB_DeepVariant,
-                runtimeMinutes=runtimeMinutes_DeepVariant,
-                hpcQueue=hpcQueue_DeepVariant,
-                pbDocker=pbDocker,
-                maxPreemptAttempts=maxPreemptAttempts
+                input_bam = input_bam,
+                input_bai = input_bai,
+                input_ref_tarball = input_ref_tarball,
+                pb_license_bin = pb_license_bin,
+                pb_path = pb_path,
+                gvcf_mode = gvcf_mode,
+                n_threads = n_threads_deep_variant,
+                n_gpu = n_gpu_deep_variant,
+                gpu_model = gpu_model_deep_variant,
+                gpu_driver_version = gpu_driver_version_deep_variant,
+                gb_ram = gb_ram_deep_variant,
+                disk_gb = disk_gb_deep_variant,
+                runtime_minutes = runtime_minutes_deep_variant,
+                hpc_queue = hpc_queue_deep_variant,
+                pb_docker = pb_docker,
+                max_preempt_attempts = max_preempt_attempts
         }
     }
 
     output {
-        File? deepvariantVCF = deepvariant.deepvariantVCF
-        File? haplotypecallerVCF = haplotypecaller.haplotypecallerVCF
+        File? deepvariant_vcf = deepvariant.deepvariant_vcf
+        File? haplotypecaller_vcf = haplotypecaller.haplotypecaller_vcf
     }
 
     meta {
-        Author: "Nvidia Clara Parabricks"
+        author: "Nvidia Clara Parabricks"
+        outputs: {
+            deepvariant_vcf: "Output VCF from DeepVariant",
+            haplotypecaller_vcf: "Output VCF from GATK HaplotypeCaller"
+        }
     }
 }
