@@ -1,0 +1,98 @@
+version 1.2
+
+task fq2bam {
+    meta {
+        description: "Converts FASTQ files to BAM files"
+        Author: "KIDS25-hackathon/Team-20"
+        outputs: {
+            bam_output: "BAM format file",
+            bai_output: "BAM index file",
+            bqsr_output: "Optional BQSR report file"
+        }
+    }
+
+    parameter_meta {
+        fastq_1: " FASTQ input file (R1)"
+        fastq_2: " FASTQ input file (R2)"
+        read_group_sample_name: "Read group sample name"
+        read_group_library_name: "Read group library name"
+        read_group_id: "Read group ID"
+        read_group_platform_name: "Read group platform name"
+        ref_tarball: "Reference tarball containing bwa index files"
+        known_sites_vcf: "Optional known sites VCF file for BQSR"
+        known_sites_tbi: "Optional index file for known sites VCF"
+        pb_license_bin: "parabricks license bin"
+        use_best_practices: "Enable GATK best practices workflow??"
+        tmp_dir: "Temporary directory for intermediate files"
+    }
+    
+    input {
+    File fastq_1
+    File fastq_2
+
+    String read_group_sample_name = "SAMPLE"
+    String read_group_library_name = "LIB1"
+    String read_group_id = "RG1"
+    String read_group_platform_name = "ILLUMINA"
+    File ref_tarball
+    #String read_group_pu = "unit1"
+
+    File? known_sites_vcf
+    File? known_sites_tbi
+    File? pb_license_bin
+    Boolean use_best_practices = false
+    #Boolean low_memory = true
+    
+    String tmp_dir = "tmp_fq2bam"
+  
+  }
+
+  String best_practice_args = if use_best_practices then "--bwa-options \" -Y -K 100000000 \"" else ""
+  String rg_id = if read_group_sample_name == "SAMPLE" then read_group_id else read_group_sample_name + "-" + read_group_id
+  String ref = basename(ref_tarball, ".tar")
+  String outbase = basename(basename(basename(basename(fastq_1, ".gz"), ".fastq"), ".fq"), "_1")
+
+  command <<< 
+    set -e
+    set -x
+    set -o pipefail
+
+    mkdir -p "~{tmp_dir}"
+    tar xf "~{ref_tarball}"
+
+    pbrun fq2bam \
+      --tmp-dir "~{tmp_dir}" \
+      --in-fq ~{fastq_1} ~{fastq_2} \
+      "@RG\tID:~{rg_id}\tLB:~{read_group_library_name}\tPL:~{read_group_platform_name}\tSM:~{read_group_sample_name}\tPU:unit1" \
+      "~{best_practice_args}" \
+      --ref "~{ref}" \
+      ~"{if defined(known_sites_vcf) then "--knownSites ~{known_sites_vcf} --out-recal-file ~{outbase}.pb.BQSR-REPORT.txt" else ""}" \
+      --out-bam "~{outbase}".pb.bam \
+      ~{if defined(pb_license_bin) then "--license-file ~{pb_license_bin}" else ""}
+  >>>
+
+  output {
+    File bam_output = "~{outbase}.pb.bam"
+    File bai_output = "~{outbase}.pb.bam.bai"
+    File? bqsr_output = "~{outbase}.pb.BQSR-REPORT.txt" 
+  }
+
+  requirements {
+    container: "nvcr.io/nvidia/clara/clara-parabricks:4.3.0-1"
+    cpu : 32
+    memory: "180 GiB"
+    gpu: true
+    disks: "local-disk ~SSD"
+    max_retries: 3
+    }
+
+    hints {
+    max_memory: "500 GiB"
+    gpuCount : 4
+    max_cpu: 50
+    short_task: true
+    gpuType : "nvidia-tesla-t4"
+    nvidiaDriverVersion : "525.60.13"
+    hpcQueue : "gpu"
+    }
+  }
