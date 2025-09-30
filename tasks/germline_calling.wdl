@@ -12,7 +12,6 @@ task haplotypecaller {
         Boolean use_best_practices = false
         String? haplotypecaller_passthrough_options = ""
         String annotation_args = ""
-        File? pb_license_bin
         Int n_threads = 24
         Int gb_ram = 120
         Int disk_gb = 0
@@ -43,8 +42,7 @@ task haplotypecaller {
         ~{"--haplotypecaller-options " + '"' + haplotypecaller_passthrough_options + '"'} \
         ~{annotation_stub} \
         ~{quantization_band_stub} \
-        ~{quantization_qual_stub} \
-        ~{"--license-file " + pb_license_bin}
+        ~{quantization_qual_stub}
     >>>
 
     output {
@@ -67,7 +65,6 @@ task deepvariant {
         File input_bai
         File input_ref_tarball
         String pb_path = "pbrun"
-        File? pb_license_bin
         Boolean gvcf_mode = false
         Int n_threads = 24
         Int gb_ram = 120
@@ -90,8 +87,7 @@ task deepvariant {
         ~{if gvcf_mode then "--gvcf " else ""} \
         --ref ~{ref} \
         --in-bam ~{input_bam} \
-        --out-variants ~{out_vcf} \
-        ~{"--license-file " + pb_license_bin}
+        --out-variants ~{out_vcf}
     >>>
 
     output {
@@ -115,8 +111,6 @@ workflow clara_parabricks_germline {
         File? input_recal
         File input_ref_tarball
         String pb_path = "pbrun"
-
-        File? pb_license_bin
 
         Boolean run_deep_variant = true
         Boolean run_haplotype_caller = true
@@ -142,7 +136,6 @@ workflow clara_parabricks_germline {
                 input_bai = input_bai,
                 input_recal = input_recal,
                 input_ref_tarball = input_ref_tarball,
-                pb_license_bin = pb_license_bin,
                 pb_path = pb_path,
                 gvcf_mode = gvcf_mode,
                 haplotypecaller_passthrough_options = haplotypecaller_passthrough_options,
@@ -159,7 +152,6 @@ workflow clara_parabricks_germline {
                 input_bam = input_bam,
                 input_bai = input_bai,
                 input_ref_tarball = input_ref_tarball,
-                pb_license_bin = pb_license_bin,
                 pb_path = pb_path,
                 gvcf_mode = gvcf_mode,
                 n_threads = n_threads_deep_variant,
