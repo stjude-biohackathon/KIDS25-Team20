@@ -21,10 +21,13 @@ workflow germline {
         String? haplotypecaller_passthrough_options
         Boolean run_deep_variant = true
         Boolean run_haplotype_caller = true
-        ## Run both DeepVariant and haplotype_caller in gVCF mode
-        Boolean gvcf_mode = false
+        Boolean mutect2_pruning
 
-        ## DeepVariant Runtime Args
+        ## Run both tools in gVCF mode and with minimum base quality
+        Boolean gvcf_mode = false
+        Int? min_base_qual
+
+        ## Runtime Args
         Int n_threads_deep_variant = 24
         Int gb_ram_deep_variant = 120
         Int disk_gb_deep_variant = 0
@@ -40,6 +43,8 @@ workflow germline {
             input_recal = input_recal,
             input_ref_tarball = input_ref_tarball,
             gvcf_mode = gvcf_mode,
+            min_base_qual = min_base_qual,
+            mutect2_pruning = mutect2_pruning,
             haplotypecaller_passthrough_options = haplotypecaller_passthrough_options,
             n_threads = n_threads_haplotype_caller,
             gb_ram = gb_ram_haplotype_caller,
@@ -54,6 +59,7 @@ workflow germline {
             input_bai = input_bai,
             input_ref_tarball = input_ref_tarball,
             gvcf_mode = gvcf_mode,
+            min_base_qual = min_base_qual,
             n_threads = n_threads_deep_variant,
             gb_ram = gb_ram_deep_variant,
             disk_gb = disk_gb_deep_variant,

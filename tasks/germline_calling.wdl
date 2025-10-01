@@ -11,6 +11,8 @@ task haplotypecaller {
         String annotation_args = ""
         Boolean gvcf_mode = false
         Boolean use_best_practices = false
+        Boolean mutect2_pruning = false
+        Int? min_base_qual = 10
         Int n_threads = 24
         Int gb_ram = 120
         Int disk_gb = 0
@@ -39,6 +41,8 @@ task haplotypecaller {
         --in-bam ~{input_bam} \
         --ref ~{ref} \
         --out-variants ~{out_vcf} \
+        --min-base-quality-score ~{min_base_qual} \
+        ~{if mutect2_pruning then "--adaptive-pruning " else ""} \
         ~{"--in-recal-file " + input_recal} \
         ~{if gvcf_mode then "--gvcf " else ""} \
         ~{"--haplotypecaller-options " + "\"" + haplotypecaller_passthrough_options + "\""
@@ -67,6 +71,7 @@ task deepvariant {
         File input_bai
         File input_ref_tarball
         Boolean gvcf_mode = false
+        Int? min_base_qual = 10
         Int n_threads = 24
         Int gb_ram = 120
         Int disk_gb = 0
@@ -84,6 +89,7 @@ task deepvariant {
         tar xvf ~{input_ref_tarball} && \
         pbrun deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
+        --min-base-quality ~{min_base_qual} \
         --ref ~{ref} \
         --in-bam ~{input_bam} \
         --out-variants ~{out_vcf}
