@@ -64,7 +64,7 @@ workflow deep_variant {
         File ref_fasta_index
         String sample_name
         String model_type = "WGS"  # Options: WGS, WES, PACBIO, ONT_R104, HYBRID_PACBIO_ILLUMINA
-        String docker_image = "google/deepvariant:1.9.0"
+        String docker_image = "google/deepvariant:1.9.0-gpu"
         Int num_shards = 16
     }
 

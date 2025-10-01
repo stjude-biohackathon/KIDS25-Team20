@@ -50,8 +50,8 @@ task run_deep_variant {
           --model_type=~{model_type} \
           --ref=~{ref_fasta} \
           --reads=~{bam} \
-          --vcf=~{sample_name}.vcf.gz \
-          --gvcf=~{sample_name}.g.vcf.gz \
+          --output_vcf=~{sample_name}.vcf.gz \
+          --output_gvcf=~{sample_name}.g.vcf.gz \
           --num_shards=~{num_shards} \
           --intermediate_results_dir=/tmp/intermediate_results \
           --make_examples_extra_args="min_mapping_quality=1" \
