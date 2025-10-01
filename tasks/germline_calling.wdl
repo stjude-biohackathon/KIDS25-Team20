@@ -17,7 +17,6 @@ task haplotypecaller {
     }
 
     String outbase = basename(input_bam, ".bam")
-    String local_tarball = basename(input_ref_tarball)
     String ref = basename(input_ref_tarball, ".tar")
 
     Int auto_disk_gb = if disk_gb == 0 then ceil(2.0 * size(input_bam, "GB")) + ceil(2.0 * size(
@@ -35,8 +34,7 @@ task haplotypecaller {
         + " -G AS_StandardAnnotation " else annotation_stub_base
 
     command <<<
-        cp ~{input_ref_tarball} ~{local_tarball} && \
-        tar xvf ~{local_tarball} && \
+        tar xvf ~{input_ref_tarball} && \
         pbrun haplotypecaller \
         --in-bam ~{input_bam} \
         --ref ~{ref} \
@@ -75,7 +73,6 @@ task deepvariant {
     }
 
     String ref = basename(input_ref_tarball, ".tar")
-    String local_tarball = basename(input_ref_tarball)
     String outbase = basename(input_bam, ".bam")
 
     Int auto_disk_gb = if disk_gb == 0 then ceil(size(input_bam, "GB")) + ceil(size(
@@ -84,8 +81,7 @@ task deepvariant {
     String out_vcf = outbase + ".deepvariant" + (if gvcf_mode then ".g" else "") + ".vcf"
 
     command <<<
-        cp ~{input_ref_tarball} ~{local_tarball} && \
-        tar xvf ~{local_tarball} && \
+        tar xvf ~{input_ref_tarball} && \
         pbrun deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
         --ref ~{ref} \
