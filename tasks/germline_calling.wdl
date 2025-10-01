@@ -36,7 +36,7 @@ task haplotypecaller {
         + " -G AS_StandardAnnotation " else annotation_stub_base
 
     command <<<
-        mv ~{input_ref_tarball} ~{local_tarball} && \
+        cp ~{input_ref_tarball} ~{local_tarball} && \
         tar xvf ~{local_tarball} && \
         ~{pb_path} haplotypecaller \
         --in-bam ~{input_bam} \
@@ -86,7 +86,7 @@ task deepvariant {
     String out_vcf = outbase + ".deepvariant" + (if gvcf_mode then ".g" else "") + ".vcf"
 
     command <<<
-        mv ~{input_ref_tarball} ~{local_tarball} && \
+        cp ~{input_ref_tarball} ~{local_tarball} && \
         tar xvf ~{local_tarball} && \
         ~{pb_path} deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
