@@ -8,7 +8,6 @@ task haplotypecaller {
         File? input_recal
         File? interval_file
         String? haplotypecaller_passthrough_options = ""
-        String pb_path = "pbrun"
         String annotation_args = ""
         Boolean gvcf_mode = false
         Boolean use_best_practices = false
@@ -38,7 +37,7 @@ task haplotypecaller {
     command <<<
         cp ~{input_ref_tarball} ~{local_tarball} && \
         tar xvf ~{local_tarball} && \
-        ~{pb_path} haplotypecaller \
+        pbrun haplotypecaller \
         --in-bam ~{input_bam} \
         --ref ~{ref} \
         --out-variants ~{out_vcf} \
@@ -69,7 +68,6 @@ task deepvariant {
         File input_bam
         File input_bai
         File input_ref_tarball
-        String pb_path = "pbrun"
         Boolean gvcf_mode = false
         Int n_threads = 24
         Int gb_ram = 120
@@ -88,7 +86,7 @@ task deepvariant {
     command <<<
         cp ~{input_ref_tarball} ~{local_tarball} && \
         tar xvf ~{local_tarball} && \
-        ~{pb_path} deepvariant \
+        pbrun deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
         --ref ~{ref} \
         --in-bam ~{input_bam} \
