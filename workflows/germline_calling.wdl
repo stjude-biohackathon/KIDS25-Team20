@@ -19,7 +19,6 @@ workflow germline {
 
         ## HaplotypeCaller Runtime Args
         String? haplotypecaller_passthrough_options
-        String pb_path = "pbrun"
         Boolean run_deep_variant = true
         Boolean run_haplotype_caller = true
         ## Run both DeepVariant and haplotype_caller in gVCF mode
@@ -40,7 +39,6 @@ workflow germline {
             input_bai = input_bai,
             input_recal = input_recal,
             input_ref_tarball = input_ref_tarball,
-            pb_path = pb_path,
             gvcf_mode = gvcf_mode,
             haplotypecaller_passthrough_options = haplotypecaller_passthrough_options,
             n_threads = n_threads_haplotype_caller,
@@ -55,7 +53,6 @@ workflow germline {
             input_bam = input_bam,
             input_bai = input_bai,
             input_ref_tarball = input_ref_tarball,
-            pb_path = pb_path,
             gvcf_mode = gvcf_mode,
             n_threads = n_threads_deep_variant,
             gb_ram = gb_ram_deep_variant,
