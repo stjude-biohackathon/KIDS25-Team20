@@ -8,17 +8,17 @@ task haplotypecaller {
         File? input_recal
         File? interval_file
         String? haplotypecaller_passthrough_options = ""
-        String pb_path = "pbrun"
         String annotation_args = ""
         Boolean gvcf_mode = false
         Boolean use_best_practices = false
+        Boolean mutect2_pruning = false
+        Int? min_base_qual = 10
         Int n_threads = 24
         Int gb_ram = 120
         Int disk_gb = 0
     }
 
     String outbase = basename(input_bam, ".bam")
-    String local_tarball = basename(input_ref_tarball)
     String ref = basename(input_ref_tarball, ".tar")
 
     Int auto_disk_gb = if disk_gb == 0 then ceil(2.0 * size(input_bam, "GB")) + ceil(2.0 * size(
@@ -36,12 +36,13 @@ task haplotypecaller {
         + " -G AS_StandardAnnotation " else annotation_stub_base
 
     command <<<
-        mv ~{input_ref_tarball} ~{local_tarball} && \
-        tar xvf ~{local_tarball} && \
-        ~{pb_path} haplotypecaller \
+        tar xvf ~{input_ref_tarball} && \
+        pbrun haplotypecaller \
         --in-bam ~{input_bam} \
         --ref ~{ref} \
         --out-variants ~{out_vcf} \
+        --min-base-quality-score ~{min_base_qual} \
+        ~{if mutect2_pruning then "--adaptive-pruning " else ""} \
         ~{"--in-recal-file " + input_recal} \
         ~{if gvcf_mode then "--gvcf " else ""} \
         ~{"--haplotypecaller-options " + "\"" + haplotypecaller_passthrough_options + "\""
@@ -69,15 +70,14 @@ task deepvariant {
         File input_bam
         File input_bai
         File input_ref_tarball
-        String pb_path = "pbrun"
         Boolean gvcf_mode = false
+        Int? min_base_qual = 10
         Int n_threads = 24
         Int gb_ram = 120
         Int disk_gb = 0
     }
 
     String ref = basename(input_ref_tarball, ".tar")
-    String local_tarball = basename(input_ref_tarball)
     String outbase = basename(input_bam, ".bam")
 
     Int auto_disk_gb = if disk_gb == 0 then ceil(size(input_bam, "GB")) + ceil(size(
@@ -86,10 +86,10 @@ task deepvariant {
     String out_vcf = outbase + ".deepvariant" + (if gvcf_mode then ".g" else "") + ".vcf"
 
     command <<<
-        mv ~{input_ref_tarball} ~{local_tarball} && \
-        tar xvf ~{local_tarball} && \
-        ~{pb_path} deepvariant \
+        tar xvf ~{input_ref_tarball} && \
+        pbrun deepvariant \
         ~{if gvcf_mode then "--gvcf " else ""} \
+        --min-base-quality ~{min_base_qual} \
         --ref ~{ref} \
         --in-bam ~{input_bam} \
         --out-variants ~{out_vcf}
